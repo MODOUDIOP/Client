@@ -6,10 +6,12 @@ import AdminMenu from "../../components/nav/AdminMenu";
 import axios from "axios";
 import { Select } from "antd";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-const { Option } = Select;
+import { useNavigate, useParams } from "react-router-dom";
 
-export default function AdminProduct() {
+
+
+const { Option } = Select;
+export default function AdminProductUpdate() {
  // context
     const [auth, setAuth] = useAuth();
     //satate
@@ -21,8 +23,16 @@ export default function AdminProduct() {
     const [category, setCategory] = useState("");
     const [shipping, setShipping] = useState("");
     const [quantity, setQuantity] = useState("");
+     const [id, setId] = useState("");
     //hook
     const navigate = useNavigate();
+
+    const params = useParams();
+
+    useEffect(() => {
+        loadProduct();
+    }, []);
+    
 
     useEffect(() => {
         loadCategories();
@@ -37,11 +47,26 @@ export default function AdminProduct() {
             console.log(err)
         }
     };
+    const loadProduct = async () => {
+        try {
+            const { data } = await axios.get(`/product/${params.slug}`);
+            setName(data.name);
+            setDescription(data.description);
+            setPrice(data.price);
+            setCategory(data.category._id);
+            setShipping(data.shipping);
+            setQuantity(data.quantity);
+            setId(data._id);
+            
+        } catch (err) {
+            console.log(err)
+        }
+    }
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const productData = new FormData();
-            productData.append("photo", photo);
+           photo && productData.append("photo", photo);
             productData.append("name", name);
             productData.append("description", description);
             productData.append("price", price);
@@ -50,13 +75,14 @@ export default function AdminProduct() {
             productData.append("quantity", quantity);
             
             //console.log([...productData]);
-            const { data } = await axios.post("/product", productData);
+            const { data } = await axios.put(`/product/${id}`, productData);
            
             if(data?.error) {
                 toast.error(data.error)
             } else {
-                toast.success(`"${data.name}" is created`);
-                 navigate("/dashboard/admin/products");
+                toast.success(`"${data.name}" is update`);
+                navigate("/dashboard/admin/products");
+                window.location.reload()
              }
             
             
@@ -65,6 +91,21 @@ export default function AdminProduct() {
             toast.error("Product create failed. Try again")
          }
         
+    }
+    const handleDelete = async (req, res) => {
+        try {
+            let answer = window.confirm(
+                "Are you sure you want delete this product?"
+            );
+            if (!answer) return;
+            
+            const { data } = await axios.delete(`/product/${id}`);
+            toast.success(`"${data.name}" is Deleted`);
+            navigate("/dashboard/admin/products");
+        } catch (err) {
+            console.log(err)
+            toast.error("Delete failed try again")
+        }
     }
     return (
         <>
@@ -78,15 +119,19 @@ export default function AdminProduct() {
                         <AdminMenu/>
                     </div>
                     <div className="col-md-9">
-                        <div className="p-3 mt-2 mb-2 h4 bg-primary" >Create Products</div> 
-                        {photo && <div className="text-center">
+                        <div className="p-3 mt-2 mb-2 h4 bg-primary" >Update Product</div> 
+                        {photo &&
+                            <div className="text-center">
                             <img
                                 src={URL.createObjectURL(photo)}
                                 alt=" product photo "
                                 className="img img-responsive"
                                 height="200px"
+                                    
+
                             />
-                        </div>}
+                            </div>
+                        }
                             
                         <div className="pt-2">
                             <label className="btn btn-outline-secondary p-2 col-12 mb-3">
@@ -151,6 +196,7 @@ export default function AdminProduct() {
                             className="form-select mb-3"
                             placeholder="Choose shipping"
                             onChange={(value) => setShipping(value)}
+                            value={shipping ? "Yes": "No"}
                             >
                             <Option value="0">No</Option>
                            <Option value="1">Yes</Option> 
@@ -165,9 +211,16 @@ export default function AdminProduct() {
                             onChange={(e)=>setQuantity(e.target.value)}
                         />
 
-                        <button onClick={handleSubmit} className="btn btn-primary p-2 mt-3">
-                            Submit
+                        <div className="d-flex justify-content-between">
+                            
+                             <button onClick={handleSubmit} className="btn btn-primary p-2 mt-3">
+                          Update
                         </button>
+
+                         <button onClick={handleDelete} className="btn btn-danger p-2 mt-3">
+                          Delete
+                        </button>
+                       </div>
                     
                     </div>
                 </div>
